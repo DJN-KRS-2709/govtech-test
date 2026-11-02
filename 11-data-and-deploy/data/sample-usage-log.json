@@ -1,0 +1,8 @@
+{
+  "note": "Synthetic usage. Seeded for Module 12. Not a live analytics export.",
+  "sessions": [
+    {"id": "S-1", "use_case": "enquiry-triage-agent", "drafts": 12, "sent_by_person": 9, "stopped_for_review": 3},
+    {"id": "S-2", "use_case": "enquiry-triage-agent", "drafts": 8, "sent_by_person": 4, "stopped_for_review": 4},
+    {"id": "S-3", "use_case": "application-helper", "questions_explained": 20, "submits_attempted": 0, "fields_flagged": 7}
+  ]
+}

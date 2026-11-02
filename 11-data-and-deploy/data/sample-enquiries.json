@@ -1,0 +1,32 @@
+{
+  "note": "Synthetic. Fictional city desk. Not a real enquiry and not government data.",
+  "enquiries": [
+    {
+      "id": "ENQ-1042",
+      "received": "2026-03-04T09:12:00Z",
+      "channel": "web form",
+      "text": "The streetlight on Harbour Lane has been out for three nights.",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    },
+    {
+      "id": "ENQ-1043",
+      "received": "2026-03-04T09:40:00Z",
+      "channel": "web form",
+      "text": "Can I print a map at Harbourlight Library on Saturday?",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    },
+    {
+      "id": "ENQ-1044",
+      "received": "2026-03-04T11:05:00Z",
+      "channel": "email",
+      "text": "The form will not let me leave the middle-name box empty.",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    }
+  ]
+}

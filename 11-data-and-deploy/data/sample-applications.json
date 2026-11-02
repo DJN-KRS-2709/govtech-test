@@ -1,0 +1,31 @@
+{
+  "note": "Synthetic applicants. Not real people.",
+  "applications": [
+    {
+      "id": "APP-220",
+      "applicant": "A. North",
+      "form": "Harbourlight room booking",
+      "fields": {
+        "organisation": "North Reading Circle",
+        "date": "2026-04-12",
+        "room": "",
+        "headcount": "18",
+        "middle_name": ""
+      },
+      "missing": ["room"]
+    },
+    {
+      "id": "APP-221",
+      "applicant": "B. Quill",
+      "form": "Harbourlight room booking",
+      "fields": {
+        "organisation": "",
+        "date": "2026-04-12",
+        "room": "Reading room",
+        "headcount": "",
+        "middle_name": ""
+      },
+      "missing": ["organisation", "headcount"]
+    }
+  ]
+}
