@@ -159,6 +159,10 @@
   .chip.ok { background: var(--ok-bg); color: var(--ok-text); }
   .chip.warn { background: var(--warn-bg); color: var(--warn-text); }
   .chip.done { background: var(--done-bg); color: var(--done-text); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+  .chips .chip { margin-top: 0; }
+  .chip.prio { border: 1px solid var(--border); color: var(--muted); }
+  .chip.prio.high { border-color: var(--fire-border); background: var(--fire-bg); color: var(--fire-text); }
 
   /* Enquiry and draft */
   .meta { margin: 4px 0 12px; color: var(--muted); font-size: 0.9rem; }
@@ -535,6 +539,8 @@
       </section>`;
   }
 
+  // Module 12: each item shows the drafted priority, so urgency is visible
+  // without opening every enquiry.
   function renderList() {
     document.getElementById("enquiry-list").innerHTML = enquiries.map(e => {
       const status = statusOf(e);
@@ -542,7 +548,10 @@
         <button class="item" type="button" data-id="${e.id}" aria-current="${e.id === selectedId}">
           <span class="item-top"><strong>${e.id}</strong><span>${escapeHtml(channelLabel(e.channel))}</span></span>
           <span class="item-text">${escapeHtml(e.text)}</span>
-          <span class="chip ${status.cls}">${status.label}</span>
+          <span class="chips">
+            <span class="chip ${status.cls}">${status.label}</span>
+            <span class="chip prio${e.draft.priority === "High" ? " high" : ""}">${e.draft.priority ? `${escapeHtml(e.draft.priority)} priority` : "Priority not set"}</span>
+          </span>
         </button>
       </li>`;
     }).join("");
@@ -637,7 +646,7 @@
     copyEl.disabled = replyEl.value.trim() === "";
 
     document.getElementById("category").addEventListener("change", ev => { d.category = ev.target.value; });
-    document.getElementById("priority").addEventListener("change", ev => { d.priority = ev.target.value; renderVerdict(); });
+    document.getElementById("priority").addEventListener("change", ev => { d.priority = ev.target.value; renderList(); renderVerdict(); });
     replyEl.addEventListener("input", () => {
       d.reply = replyEl.value;
       copyEl.disabled = replyEl.value.trim() === "";
