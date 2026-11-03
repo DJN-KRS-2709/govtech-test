@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Harbourlight Enquiry Triage</title>
 <!--
-  Prototype v3, Module 8. The first screen of the Enquiry triage agent, plus a
-  partner check that shows whether the kill switch fired.
-  One file, no database, no network calls. Synthetic Harbourlight data only.
-  The assistant drafts. A person sends. This screen has no Send button.
+  Module 11. The Enquiry triage screen with a prototype role switch.
+  One self-contained file: the JSON is copied in, nothing is fetched, there are
+  no links to other files, and there is no sign-up or database.
+  Synthetic Harbourlight data only. The assistant drafts. A person sends.
 -->
 <style>
   :root {
@@ -72,6 +72,7 @@
     padding: 8px 16px;
     font-size: 0.9rem;
   }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 16px 16px 0; }
   main {
     display: grid;
     grid-template-columns: minmax(240px, 320px) 1fr;
@@ -80,6 +81,7 @@
     margin: 0 auto;
     padding: 16px;
   }
+  main.single { grid-template-columns: 1fr; max-width: 720px; }
   @media (max-width: 760px) {
     main { grid-template-columns: 1fr; }
   }
@@ -91,6 +93,42 @@
     padding: 16px;
   }
   .card + .card { margin-top: 16px; }
+
+  /* Role switch */
+  .role-switch { display: flex; flex-wrap: wrap; gap: 8px; margin: 8px 0 12px; }
+  .role-switch label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0;
+    padding: 6px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    cursor: pointer;
+  }
+  .role-switch input { accent-color: var(--accent); margin: 0; }
+  .role-switch label:has(input:checked) { border-color: var(--accent); background: var(--done-bg); color: var(--done-text); }
+  .proto-note {
+    margin: 0 0 12px;
+    padding: 8px 12px;
+    border-left: 4px solid var(--warn-border);
+    border-radius: 0 8px 8px 0;
+    background: var(--warn-bg);
+    color: var(--warn-text);
+    font-weight: 600;
+  }
+  .rules { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 0 0 12px; }
+  @media (max-width: 760px) {
+    .rules { grid-template-columns: 1fr; }
+  }
+  .rules dt { color: var(--muted); font-size: 0.8rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; }
+  .rules dd { margin: 2px 0 0; font-size: 0.95rem; }
+  .check-result:empty { display: none; }
+  .check-result { margin-top: 12px; padding: 10px 12px; border-radius: 8px; }
+  .check-result strong { display: block; }
+  .check-result small { display: block; margin-top: 4px; color: inherit; opacity: 0.85; }
+  .check-result.pass { background: var(--ok-bg); color: var(--ok-text); }
+  .check-result.fail { background: var(--fire-bg); color: var(--fire-text); border: 2px solid var(--fire-border); }
 
   /* Enquiry list */
   .list h2 { margin-bottom: 8px; }
@@ -164,6 +202,7 @@
     border-radius: 8px;
     padding: 8px 10px;
   }
+  select:disabled, textarea[readonly] { background: var(--bg); }
   textarea { resize: vertical; min-height: 140px; }
   small { display: block; margin-top: 4px; color: var(--muted); font-size: 0.8rem; }
   .actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
@@ -177,15 +216,17 @@
   button.primary { background: var(--accent); color: var(--accent-text); border: 1px solid var(--accent); }
   button.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
   button:disabled { opacity: 0.45; cursor: not-allowed; }
-  button:focus-visible, select:focus-visible, textarea:focus-visible {
+  button:focus-visible, select:focus-visible, textarea:focus-visible, .role-switch input:focus-visible {
     outline: 3px solid var(--accent);
     outline-offset: 2px;
   }
   .note { margin: 12px 0 0; color: var(--muted); font-size: 0.85rem; }
   .live { min-height: 1.5em; margin: 8px 0 0; font-size: 0.9rem; color: var(--ok-text); }
+  table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 0.8rem; font-weight: 700; }
 
   /* Partner check (Module 8) */
-  .partner-wrap { max-width: 1100px; margin: 0 auto; padding: 16px 16px 0; }
   .partner h2 { margin-bottom: 4px; }
   .partner .hint { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
   .picks { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -203,11 +244,26 @@
 
 <header>
   <h1>Harbourlight desk · Enquiry triage</h1>
-  <p>Prototype v3. Pick an enquiry and check the assistant's draft.</p>
+  <p>Module 11 prototype. Switch roles to see what each role can read and do.</p>
 </header>
 <div class="banner" role="note">Synthetic data only. This screen drafts a reply. It never sends one.</div>
 
-<section class="partner-wrap" aria-labelledby="partner-heading">
+<section class="wrap" aria-labelledby="role-heading">
+  <div class="card">
+    <h2 id="role-heading">View as</h2>
+    <div class="role-switch" role="radiogroup" aria-labelledby="role-heading">
+      <label><input type="radio" name="role" value="desk" checked> Desk staff</label>
+      <label><input type="radio" name="role" value="reviewer"> Reviewer</label>
+      <label><input type="radio" name="role" value="applicant"> Applicant</label>
+    </div>
+    <p class="proto-note">This role switch is a prototype. It is not real authentication and not a database.</p>
+    <dl class="rules" id="rules"></dl>
+    <button id="check-btn" class="primary" type="button">Check</button>
+    <div id="check-result" class="check-result" role="status" aria-live="polite"></div>
+  </div>
+</section>
+
+<section class="wrap" id="partner-section" aria-labelledby="partner-heading">
   <div class="card partner">
     <h2 id="partner-heading">Partner check · kill switch</h2>
     <p class="hint">Ask a partner, with no help: which enquiry is urgent? Let them look around the screen, then pick one here.</p>
@@ -217,67 +273,96 @@
   </div>
 </section>
 
-<main>
-  <nav class="card list" aria-labelledby="list-heading">
-    <h2 id="list-heading">Enquiries</h2>
-    <ul id="enquiry-list"></ul>
-  </nav>
-  <div id="detail"></div>
-</main>
+<main id="view"></main>
 
-<footer>
-  ENQ-1042 to ENQ-1044 come from the course sample file. ENQ-1045 was written for this prototype in the same shape.
-  Drafts are written into this file in advance. Nothing is stored, so edits are lost when the page closes.
-</footer>
+<footer id="footer"></footer>
+
+<!-- Copied from 11-data-and-deploy/data/sample-enquiries.json. Unchanged. -->
+<script type="application/json" id="data-enquiries">
+{
+  "note": "Synthetic. Fictional city desk. Not a real enquiry and not government data.",
+  "enquiries": [
+    {
+      "id": "ENQ-1042",
+      "received": "2026-03-04T09:12:00Z",
+      "channel": "web form",
+      "text": "The streetlight on Harbour Lane has been out for three nights.",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    },
+    {
+      "id": "ENQ-1043",
+      "received": "2026-03-04T09:40:00Z",
+      "channel": "web form",
+      "text": "Can I print a map at Harbourlight Library on Saturday?",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    },
+    {
+      "id": "ENQ-1044",
+      "received": "2026-03-04T11:05:00Z",
+      "channel": "email",
+      "text": "The form will not let me leave the middle-name box empty.",
+      "category": "",
+      "priority": "",
+      "draft_reply": ""
+    }
+  ]
+}
+</script>
+
+<!-- Copied from 11-data-and-deploy/data/sample-usage-log.json. Unchanged. -->
+<script type="application/json" id="data-usage">
+{
+  "note": "Synthetic usage. Seeded for Module 12. Not a live analytics export.",
+  "sessions": [
+    {"id": "S-1", "use_case": "enquiry-triage-agent", "drafts": 12, "sent_by_person": 9, "stopped_for_review": 3},
+    {"id": "S-2", "use_case": "enquiry-triage-agent", "drafts": 8, "sent_by_person": 4, "stopped_for_review": 4},
+    {"id": "S-3", "use_case": "application-helper", "questions_explained": 20, "submits_attempted": 0, "fields_flagged": 7}
+  ]
+}
+</script>
 
 <script>
-  // Synthetic Harbourlight enquiries with the draft the assistant would produce.
+  const enquiryData = JSON.parse(document.getElementById("data-enquiries").textContent);
+  const usageData = JSON.parse(document.getElementById("data-usage").textContent);
+
+  // The assistant's drafts for the rows in sample-enquiries.json. The JSON keeps
+  // category, priority and draft_reply empty, so the drafts live in this page.
   // needsPerson marks the required stop: the draft is unsure, or the enquiry
   // asks for a decision about a person.
-  const enquiries = [
-    {
-      id: "ENQ-1042",
-      received: "2026-03-04T09:12:00Z",
-      channel: "Web form",
-      text: "The streetlight on Harbour Lane has been out for three nights.",
-      draft: {
-        needsPerson: false,
-        reason: "The text names a street fault.",
-        category: "Streets",
-        priority: "High",
-        reply: "Thank you for telling us about the streetlight on Harbour Lane. You say it has been out for three nights.\n\n[Person to add: what happens next.]"
-      }
+  const drafts = {
+    "ENQ-1042": {
+      needsPerson: false,
+      reason: "The text names a street fault.",
+      category: "Streets",
+      priority: "High",
+      reply: "Thank you for telling us about the streetlight on Harbour Lane. You say it has been out for three nights.\n\n[Person to add: what happens next.]"
     },
-    {
-      id: "ENQ-1043",
-      received: "2026-03-04T09:40:00Z",
-      channel: "Web form",
-      text: "Can I print a map at Harbourlight Library on Saturday?",
-      draft: {
-        needsPerson: false,
-        reason: "The text asks about a library service.",
-        category: "Libraries",
-        priority: "Low",
-        reply: "Thank you for your question about printing a map at Harbourlight Library on Saturday.\n\n[Person to add: whether printing is available on Saturday.]"
-      }
+    "ENQ-1043": {
+      needsPerson: false,
+      reason: "The text asks about a library service.",
+      category: "Libraries",
+      priority: "Low",
+      reply: "Thank you for your question about printing a map at Harbourlight Library on Saturday.\n\n[Person to add: whether printing is available on Saturday.]"
     },
-    {
-      id: "ENQ-1044",
-      received: "2026-03-04T11:05:00Z",
-      channel: "Email",
-      text: "The form will not let me leave the middle-name box empty.",
-      draft: {
-        needsPerson: true,
-        reason: "Unsure. The text does not say which form, so the category is not clear.",
-        category: "",
-        priority: "",
-        reply: ""
-      }
-    },
+    "ENQ-1044": {
+      needsPerson: true,
+      reason: "Unsure. The text does not say which form, so the category is not clear.",
+      category: "",
+      priority: "",
+      reply: ""
+    }
+  };
+
+  // Written for this prototype in the same shape. Not in the data file.
+  const prototypeRows = [
     {
       id: "ENQ-1045",
       received: "2026-03-04T11:30:00Z",
-      channel: "Web form",
+      channel: "web form",
       text: "Please refuse my neighbour's parking permit request.",
       draft: {
         needsPerson: true,
@@ -289,19 +374,102 @@
     }
   ];
 
+  const enquiries = enquiryData.enquiries
+    .map(row => ({ id: row.id, received: row.received, channel: row.channel, text: row.text, draft: { ...drafts[row.id] } }))
+    .concat(prototypeRows);
+
+  const triageSessions = usageData.sessions.filter(s => s.use_case === "enquiry-triage-agent");
+
   // Example categories from the use case (PRD gap G4) and placeholder
   // priority levels (PRD gap G5). An empty value means not set.
   const categories = ["", "Streets", "Libraries", "Permits"];
   const priorities = ["", "High", "Medium", "Low"];
 
+  // In this prototype the applicant is the fictional sender of this enquiry.
+  const APPLICANT_ENQUIRY = "ENQ-1042";
+
+  function isShown(el) {
+    return !!(el && (el.offsetWidth || el.offsetHeight || el.getClientRects().length));
+  }
+
+  // One entry per row of 11-data-and-deploy/access-rules.md. Each check looks at
+  // what is on the screen right now and reports one thing the role must not see.
+  const ROLES = {
+    desk: {
+      canRead: "Every enquiry: text, channel, and received time. The assistant's draft: category, priority, and reply.",
+      canWrite: "The draft's category, priority, and reply. Mark a draft as checked.",
+      mustNot: "Send, close, or update a case from this screen. Edit the enquiry text.",
+      check() {
+        const words = /\b(send|close|update)\b/i;
+        const found = [...document.querySelectorAll("button")].filter(b => isShown(b) && words.test(b.textContent));
+        return {
+          item: "Send, close, and update controls",
+          ok: found.length === 0,
+          detail: found.length
+            ? `Visible: ${found.map(b => b.textContent.trim()).join(", ")}.`
+            : "No button on the screen sends, closes, or updates a case."
+        };
+      }
+    },
+    reviewer: {
+      canRead: "Every enquiry and its draft. Usage counts for enquiry triage.",
+      canWrite: "A score from 1 to 5 for each draft, kept on this page only.",
+      mustNot: "Edit the enquiry or the draft. Send, close, or update a case.",
+      check() {
+        const fields = ["category", "priority", "reply"].map(id => document.getElementById(id));
+        const editable = fields.filter(f => f && isShown(f) && !(f.disabled || f.readOnly));
+        const ok = fields.every(Boolean) && editable.length === 0;
+        return {
+          item: "Edit controls for the draft",
+          ok,
+          detail: ok
+            ? "Category, priority, and reply are read-only."
+            : `Editable: ${editable.map(f => f.id).join(", ") || "draft fields missing"}.`
+        };
+      }
+    },
+    applicant: {
+      canRead: `Their own enquiry only: text, channel, and received time. In this prototype, the fictional sender of ${APPLICANT_ENQUIRY}.`,
+      canWrite: "Nothing on this screen. There is no sign-up.",
+      mustNot: "See another person's enquiry. See the unsent draft, the scores, or the usage counts.",
+      check() {
+        const shown = document.body.innerText;
+        const others = enquiries.filter(e => e.id !== APPLICANT_ENQUIRY);
+        const leaked = others.filter(e => shown.includes(e.id) || shown.includes(e.text));
+        return {
+          item: "Other people's enquiries",
+          ok: leaked.length === 0,
+          detail: leaked.length
+            ? `Visible: ${leaked.map(e => e.id).join(", ")}.`
+            : `None of the other ${others.length} enquiries is on the screen.`
+        };
+      }
+    }
+  };
+
   let selectedId = enquiries[0].id;
   const checked = new Set();
+  const scores = {};
 
-  const listEl = document.getElementById("enquiry-list");
-  const detailEl = document.getElementById("detail");
+  const viewEl = document.getElementById("view");
+  const rulesEl = document.getElementById("rules");
+  const footerEl = document.getElementById("footer");
+  const partnerSection = document.getElementById("partner-section");
+  const checkResultEl = document.getElementById("check-result");
+
+  // An unknown role fails closed to the narrowest view, the applicant's.
+  function currentRole() {
+    const picked = document.querySelector('input[name="role"]:checked');
+    const value = picked ? picked.value : "";
+    return Object.prototype.hasOwnProperty.call(ROLES, value) ? value : "applicant";
+  }
 
   function escapeHtml(value) {
-    return value.replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+    return String(value).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+  }
+
+  function channelLabel(channel) {
+    return channel.charAt(0).toUpperCase() + channel.slice(1);
   }
 
   function formatTime(iso) {
@@ -323,12 +491,56 @@
     ).join("");
   }
 
+  function renderRole() {
+    const key = currentRole();
+    const role = ROLES[key];
+    rulesEl.innerHTML = `
+      <div><dt>Can read</dt><dd>${escapeHtml(role.canRead)}</dd></div>
+      <div><dt>Can write</dt><dd>${escapeHtml(role.canWrite)}</dd></div>
+      <div><dt>Must not</dt><dd>${escapeHtml(role.mustNot)}</dd></div>`;
+    partnerSection.hidden = key === "applicant";
+    footerEl.textContent = key === "applicant"
+      ? "Synthetic data only. Nothing on this page is stored."
+      : "ENQ-1042 to ENQ-1044 and the usage counts are copied into this page from the data files. ENQ-1045 was written for this prototype in the same shape. The drafts are written into this page. Nothing is stored, so edits and scores are lost when the page closes.";
+    checkResultEl.className = "check-result";
+    checkResultEl.innerHTML = "";
+    renderView();
+  }
+
+  function renderView() {
+    if (currentRole() === "applicant") {
+      renderApplicant();
+      return;
+    }
+    viewEl.className = "";
+    viewEl.innerHTML = `
+      <nav class="card list" aria-labelledby="list-heading">
+        <h2 id="list-heading">Enquiries</h2>
+        <ul id="enquiry-list"></ul>
+      </nav>
+      <div id="detail"></div>`;
+    renderList();
+    renderDetail();
+  }
+
+  function renderApplicant() {
+    const e = enquiries.find(x => x.id === APPLICANT_ENQUIRY);
+    viewEl.className = "single";
+    viewEl.innerHTML = `
+      <section class="card" aria-labelledby="own-heading">
+        <h2 id="own-heading">Your enquiry</h2>
+        <p class="meta">${escapeHtml(channelLabel(e.channel))} · ${formatTime(e.received)}</p>
+        <blockquote>${escapeHtml(e.text)}</blockquote>
+        <p class="note">A person at the Harbourlight desk reads your enquiry. The assistant does not send anything.</p>
+      </section>`;
+  }
+
   function renderList() {
-    listEl.innerHTML = enquiries.map(e => {
+    document.getElementById("enquiry-list").innerHTML = enquiries.map(e => {
       const status = statusOf(e);
       return `<li>
         <button class="item" type="button" data-id="${e.id}" aria-current="${e.id === selectedId}">
-          <span class="item-top"><strong>${e.id}</strong><span>${escapeHtml(e.channel)}</span></span>
+          <span class="item-top"><strong>${e.id}</strong><span>${escapeHtml(channelLabel(e.channel))}</span></span>
           <span class="item-text">${escapeHtml(e.text)}</span>
           <span class="chip ${status.cls}">${status.label}</span>
         </button>
@@ -337,9 +549,11 @@
   }
 
   function renderDetail() {
+    const isReviewer = currentRole() === "reviewer";
     const e = enquiries.find(x => x.id === selectedId);
     const d = e.draft;
     const isChecked = checked.has(e.id);
+    const lock = isReviewer ? " disabled" : "";
 
     const confidence = d.needsPerson
       ? `<div class="stop" role="status"><strong>NEEDS A PERSON</strong>${escapeHtml(d.reason)}</div>`
@@ -349,10 +563,42 @@
       ? "The assistant stopped and did not draft a reply. A person writes it."
       : "";
 
-    detailEl.innerHTML = `
+    const deskActions = `
+      <div class="actions">
+        <button id="copy" class="primary" type="button">Copy reply</button>
+        <button id="check" class="secondary" type="button" aria-pressed="${isChecked}">
+          ${isChecked ? "Checked by a person · Undo" : "Mark as checked by a person"}
+        </button>
+      </div>
+      <p class="note">There is no Send button. A person sends the reply from the desk's own system.</p>
+      <p id="live" class="live" aria-live="polite"></p>`;
+
+    const reviewerScore = `
+      <div class="fields">
+        <div>
+          <label for="score">Your score (1 to 5)</label>
+          <select id="score">${options(["", "1", "2", "3", "4", "5"], scores[e.id] || "", "Not scored")}</select>
+          <small>Kept on this page only. Nothing is saved.</small>
+        </div>
+      </div>
+      <p class="note">Reviewers read the draft. They cannot edit it or send it.</p>`;
+
+    const usage = isReviewer ? `
+      <section class="card" aria-labelledby="usage-heading">
+        <h2 id="usage-heading">Usage counts</h2>
+        <p class="meta">Synthetic. Enquiry triage sessions from the usage log.</p>
+        <table>
+          <thead><tr><th>Session</th><th>Drafts</th><th>Sent by a person</th><th>Stopped for review</th></tr></thead>
+          <tbody>${triageSessions.map(s =>
+            `<tr><td>${escapeHtml(s.id)}</td><td>${s.drafts}</td><td>${s.sent_by_person}</td><td>${s.stopped_for_review}</td></tr>`
+          ).join("")}</tbody>
+        </table>
+      </section>` : "";
+
+    document.getElementById("detail").innerHTML = `
       <section class="card" aria-labelledby="enquiry-heading">
         <h2 id="enquiry-heading">Enquiry ${e.id}</h2>
-        <p class="meta">${escapeHtml(e.channel)} · ${formatTime(e.received)}</p>
+        <p class="meta">${escapeHtml(channelLabel(e.channel))} · ${formatTime(e.received)}</p>
         <blockquote>${escapeHtml(e.text)}</blockquote>
       </section>
 
@@ -365,26 +611,25 @@
         <div class="fields">
           <div>
             <label for="category">Category</label>
-            <select id="category">${options(categories, d.category, "Not sure")}</select>
+            <select id="category"${lock}>${options(categories, d.category, "Not sure")}</select>
             <small>Examples from the use case. The group's list is still open (PRD gap G4).</small>
           </div>
           <div>
             <label for="priority">Priority</label>
-            <select id="priority">${options(priorities, d.priority, "Not set")}</select>
+            <select id="priority"${lock}>${options(priorities, d.priority, "Not set")}</select>
             <small>Placeholder levels. The real levels are still open (PRD gap G5).</small>
           </div>
         </div>
         <label for="reply">Reply</label>
-        <textarea id="reply" rows="7" placeholder="${escapeHtml(replyPlaceholder)}">${escapeHtml(d.reply)}</textarea>
-        <div class="actions">
-          <button id="copy" class="primary" type="button">Copy reply</button>
-          <button id="check" class="secondary" type="button" aria-pressed="${isChecked}">
-            ${isChecked ? "Checked by a person · Undo" : "Mark as checked by a person"}
-          </button>
-        </div>
-        <p class="note">There is no Send button. A person sends the reply from the desk's own system.</p>
-        <p id="live" class="live" aria-live="polite"></p>
-      </section>`;
+        <textarea id="reply" rows="7" placeholder="${escapeHtml(replyPlaceholder)}"${isReviewer ? " readonly" : ""}>${escapeHtml(d.reply)}</textarea>
+        ${isReviewer ? reviewerScore : deskActions}
+      </section>
+      ${usage}`;
+
+    if (isReviewer) {
+      document.getElementById("score").addEventListener("change", ev => { scores[e.id] = ev.target.value; });
+      return;
+    }
 
     const replyEl = document.getElementById("reply");
     const copyEl = document.getElementById("copy");
@@ -410,21 +655,30 @@
 
     document.getElementById("check").addEventListener("click", () => {
       if (checked.has(e.id)) checked.delete(e.id); else checked.add(e.id);
-      render();
+      renderList();
+      renderDetail();
       document.getElementById("check").focus();
     });
   }
 
-  function render() {
-    renderList();
-    renderDetail();
-  }
-
-  listEl.addEventListener("click", ev => {
+  viewEl.addEventListener("click", ev => {
     const button = ev.target.closest(".item");
     if (!button) return;
     selectedId = button.dataset.id;
-    render();
+    renderList();
+    renderDetail();
+  });
+
+  document.querySelectorAll('input[name="role"]').forEach(input => input.addEventListener("change", renderRole));
+
+  document.getElementById("check-btn").addEventListener("click", () => {
+    // Clear the old result first, so the check never reads its own text.
+    checkResultEl.className = "check-result";
+    checkResultEl.innerHTML = "";
+    const result = ROLES[currentRole()].check();
+    checkResultEl.className = `check-result ${result.ok ? "pass" : "fail"}`;
+    checkResultEl.innerHTML = `<strong>${result.ok ? "Hidden correctly" : "Not hidden"}: ${escapeHtml(result.item)}</strong>${escapeHtml(result.detail)}
+      <small>This checks the screen only. The data is still in the page source, because the role switch is not real authentication.</small>`;
   });
 
   // Partner check (Module 8). The kill switch fires if the partner cannot
@@ -484,7 +738,7 @@
     renderVerdict();
   });
 
-  render();
+  renderRole();
   renderPicks();
   renderVerdict();
 </script>
