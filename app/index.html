@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Harbourlight Enquiry Triage</title>
 <!--
-  Prototype v1, Module 7. The first screen of the Enquiry triage agent.
+  Prototype v3, Module 8. The first screen of the Enquiry triage agent, plus a
+  partner check that shows whether the kill switch fired.
   One file, no database, no network calls. Synthetic Harbourlight data only.
   The assistant drafts. A person sends. This screen has no Send button.
 -->
@@ -25,6 +26,9 @@
     --warn-border: #e2b247;
     --done-bg: #e7edfb;
     --done-text: #24438c;
+    --fire-bg: #fde8e8;
+    --fire-text: #8a1c1c;
+    --fire-border: #d64545;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -42,6 +46,9 @@
       --warn-border: #8b6a1e;
       --done-bg: #1c2642;
       --done-text: #aac2ff;
+      --fire-bg: #3d1717;
+      --fire-text: #ff9d9d;
+      --fire-border: #a63a3a;
     }
   }
   * { box-sizing: border-box; }
@@ -176,6 +183,19 @@
   }
   .note { margin: 12px 0 0; color: var(--muted); font-size: 0.85rem; }
   .live { min-height: 1.5em; margin: 8px 0 0; font-size: 0.9rem; color: var(--ok-text); }
+
+  /* Partner check (Module 8) */
+  .partner-wrap { max-width: 1100px; margin: 0 auto; padding: 16px 16px 0; }
+  .partner h2 { margin-bottom: 4px; }
+  .partner .hint { margin: 0 0 12px; color: var(--muted); font-size: 0.9rem; }
+  .picks { display: flex; flex-wrap: wrap; gap: 8px; }
+  .picks button[aria-pressed="true"] { background: var(--accent); color: var(--accent-text); }
+  .verdict { margin-top: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg); }
+  .verdict strong { display: block; font-size: 1.05rem; }
+  .verdict small { color: inherit; opacity: 0.85; }
+  .verdict.not-fired { background: var(--ok-bg); color: var(--ok-text); border-color: transparent; }
+  .verdict.fired { background: var(--fire-bg); color: var(--fire-text); border: 2px solid var(--fire-border); }
+  .reset { margin-top: 12px; }
   footer { max-width: 1100px; margin: 0 auto; padding: 0 16px 24px; color: var(--muted); font-size: 0.8rem; }
 </style>
 </head>
@@ -183,9 +203,19 @@
 
 <header>
   <h1>Harbourlight desk · Enquiry triage</h1>
-  <p>Prototype v1. Pick an enquiry and check the assistant's draft.</p>
+  <p>Prototype v3. Pick an enquiry and check the assistant's draft.</p>
 </header>
 <div class="banner" role="note">Synthetic data only. This screen drafts a reply. It never sends one.</div>
+
+<section class="partner-wrap" aria-labelledby="partner-heading">
+  <div class="card partner">
+    <h2 id="partner-heading">Partner check · kill switch</h2>
+    <p class="hint">Ask a partner, with no help: which enquiry is urgent? Let them look around the screen, then pick one here.</p>
+    <div class="picks" id="picks"></div>
+    <div id="verdict" class="verdict" role="status" aria-live="polite"></div>
+    <button id="reset-check" class="secondary reset" type="button" hidden>Reset the check</button>
+  </div>
+</section>
 
 <main>
   <nav class="card list" aria-labelledby="list-heading">
@@ -362,7 +392,7 @@
     copyEl.disabled = replyEl.value.trim() === "";
 
     document.getElementById("category").addEventListener("change", ev => { d.category = ev.target.value; });
-    document.getElementById("priority").addEventListener("change", ev => { d.priority = ev.target.value; });
+    document.getElementById("priority").addEventListener("change", ev => { d.priority = ev.target.value; renderVerdict(); });
     replyEl.addEventListener("input", () => {
       d.reply = replyEl.value;
       copyEl.disabled = replyEl.value.trim() === "";
@@ -397,7 +427,66 @@
     render();
   });
 
+  // Partner check (Module 8). The kill switch fires if the partner cannot
+  // tell which enquiry is urgent, or picks one the draft does not mark High.
+  const picksEl = document.getElementById("picks");
+  const verdictEl = document.getElementById("verdict");
+  const resetEl = document.getElementById("reset-check");
+  let partnerPick = null;
+
+  function renderPicks() {
+    const choices = enquiries.map(e => ({ value: e.id, label: e.id }))
+      .concat({ value: "unsure", label: "I can't tell" });
+    picksEl.innerHTML = choices.map(c =>
+      `<button class="secondary" type="button" data-pick="${c.value}" aria-pressed="${c.value === partnerPick}">${c.label}</button>`
+    ).join("");
+  }
+
+  function renderVerdict() {
+    resetEl.hidden = partnerPick === null;
+    if (partnerPick === null) {
+      verdictEl.className = "verdict";
+      verdictEl.innerHTML = "<strong>Kill switch: waiting</strong>No pick yet.";
+      return;
+    }
+    const urgent = enquiries.filter(e => e.draft.priority === "High").map(e => e.id);
+    let fired;
+    let detail;
+    if (partnerPick === "unsure") {
+      fired = true;
+      detail = "The partner could not tell which enquiry is urgent.";
+    } else if (urgent.includes(partnerPick)) {
+      fired = false;
+      detail = `The partner picked ${partnerPick}, which the draft marks High.`;
+    } else if (urgent.length === 0) {
+      fired = true;
+      detail = `The partner picked ${partnerPick}, but no enquiry is marked High.`;
+    } else {
+      fired = true;
+      detail = `The partner picked ${partnerPick}, but the draft marks ${urgent.join(" and ")} as High.`;
+    }
+    verdictEl.className = `verdict ${fired ? "fired" : "not-fired"}`;
+    verdictEl.innerHTML = `<strong>${fired ? "Kill switch FIRED" : "Kill switch did not fire"}</strong>${detail}
+      <small>The fail line is in 08-validation/validation-brief.md.</small>`;
+  }
+
+  picksEl.addEventListener("click", ev => {
+    const button = ev.target.closest("button[data-pick]");
+    if (!button) return;
+    partnerPick = button.dataset.pick;
+    renderPicks();
+    renderVerdict();
+  });
+
+  resetEl.addEventListener("click", () => {
+    partnerPick = null;
+    renderPicks();
+    renderVerdict();
+  });
+
   render();
+  renderPicks();
+  renderVerdict();
 </script>
 </body>
 </html>
